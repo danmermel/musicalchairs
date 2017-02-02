@@ -45,17 +45,28 @@ contract chair {
     if (status != 1) throw;
     if (_redemption_code != redemption_code) throw;
     status = 2;
+    if (!artist.send(this.balance)) throw;
+
   }
 
   function mark_unlocked () {
     if (msg.sender != artist) throw;
     if (event_time > now) throw;
-    
+    if (!artist.send(this.balance)) throw;
+   
   }
 
   function mark_cancelled() {
     if (msg.sender != artist ) throw;
     if (status != 1) throw;
+    if (!seat_owner.send(this.balance)) throw;
+  }
+
+  function get_redemption_code() constant returns(uint) {
+     if (msg.sender != seat_owner) throw;
+     if (status != 1) throw;
+     return redemption_code;
+     
   }
 }
 
