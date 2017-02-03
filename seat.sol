@@ -1,6 +1,6 @@
 pragma solidity ^0.4.0;
 
-contract chair {
+contract seat {
   
   uint public status; 
   // status can be 0 (unsold), 1 (sold), 2 (used), 3 (cancelled), 4 (unlocked)
@@ -16,7 +16,7 @@ contract chair {
   uint public sellable_until;
   uint redemption_code;
 
-  function chair(bytes32 _venue, bytes32 _event_name, bytes32 _seat, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until) {
+  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until) {
     status =0;
     event_owner = msg.sender;
     venue = _venue;
