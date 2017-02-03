@@ -6,7 +6,7 @@ contract seat {
   // status can be 0 (unsold), 1 (sold), 2 (used), 3 (cancelled), 4 (unlocked)
   bytes32 public venue;
   bytes32 public event_name;
-  bytes32 public seat;
+  bytes32 public seat_name;
   uint public price;
   uint public event_time;
   address public event_owner;
@@ -16,12 +16,12 @@ contract seat {
   uint public sellable_until;
   uint redemption_code;
 
-  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until) {
+  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until) {
     status =0;
     event_owner = msg.sender;
     venue = _venue;
     event_name = _event_name;
-    seat = _seat;
+    seat_name = _seat_name;
     price = _price;
     event_time = _event_time;
     artist = _artist;
