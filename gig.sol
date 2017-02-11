@@ -16,9 +16,9 @@ contract seat {
   uint public sellable_until;
   uint redemption_code;
 
-  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until) {
+  function seat(address _event_owner, bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until) {
     status =0;
-    event_owner = msg.sender;
+    event_owner = _event_owner;
     venue = _venue;
     event_name = _event_name;
     seat_name = _seat_name;
@@ -30,13 +30,14 @@ contract seat {
     redemption_code =0;
   }
 
-  function buy_seat () payable {
+  function buy_seat (address _seat_owner) payable {
+    if (event_owner != msg.sender) throw;
     if (status !=0) throw;
     if (msg.value != price) throw;
     if (sellable_from > now) throw;
     if (sellable_until < now) throw;
     status = 1;
-    seat_owner = msg.sender;
+    seat_owner = _seat_owner;
     redemption_code =42;
   }
 
@@ -50,14 +51,14 @@ contract seat {
   }
 
   function mark_unlocked () {
-    if (msg.sender != artist) throw;
+    if (event_owner != msg.sender) throw;
     if (event_time > now) throw;
     if (!artist.send(this.balance)) throw;
    
   }
 
   function mark_cancelled() {
-    if (msg.sender != artist ) throw;
+    if (event_owner != msg.sender) throw;
     if (status != 1) throw;
     if (!seat_owner.send(this.balance)) throw;
   }
@@ -90,14 +91,16 @@ contract gig {
   }
 
   function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until) {
-    var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until);
+    if (event_owner != msg.sender) throw;
+    address myAddress = this;
+    var s = new seat(myAddress, venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until);
     seating_plan[seat_count++] = s;
   }
 
-  function create_seats(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until, uint _num_seats) {
-    for(var i = 0 ; i < _num_seats; i++) {
-      var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until);
-      seating_plan[seat_count++] = s;
-    }
-  }  
+  function buy_seat (address _seat_address) payable {
+    seat existing_seat = seat(_seat_address);
+    address myAddress = this;
+    if (existing_seat.event_owner() != myAddress) throw;
+    existing_seat.buy_seat.value(msg.value)(msg.sender);
+  }
 }
