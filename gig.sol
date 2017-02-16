@@ -41,23 +41,22 @@ contract seat {
   function redeem_ticket () {
     if (event_owner != msg.sender) throw;
     if (status != 1) throw;
-    status = 2;
-    if (!artist.send(this.balance)) throw;
-
+    // kill the contract and send its value to the artist
+    suicide(artist);
   }
 
 
   function mark_unlocked () {
     if (event_owner != msg.sender) throw;
     if (event_time > now) throw;
-    if (!artist.send(this.balance)) throw;
-   
+    // kill the contract and send its value to the artist
+    suicide(artist);
   }
 
   function mark_cancelled() {
     if (event_owner != msg.sender) throw;
     if (status != 1) throw;
-    if (!seat_owner.send(this.balance)) throw;
+    suicide(seat_owner);
   }
 
 }
