@@ -68,7 +68,8 @@ contract gig {
   uint public event_time;
   address public event_owner;
   address public artist;
-  mapping (uint => seat) public seating_plan;
+  mapping (address => uint) public seating_plan;
+  mapping (uint => seat) public seating_list;
   uint public seat_count;
 
   function gig(bytes32 _venue, bytes32 _event_name, uint _event_time, address _artist) {
@@ -83,13 +84,19 @@ contract gig {
   function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until) {
     if (event_owner != msg.sender) throw;
     var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until);
-    seating_plan[seat_count++] = s;
+    // list of created seats in an array indexed by integer
+    seating_list[seat_count] = s;
+    // list of 1s indexed by seat addresses
+    seating_plan[s] = 1;
+    seat_count++;
   }
 
   function buy_seat (address _seat_address) payable {
+    if (seating_plan[_seat_address] != 1) throw;
     seat existing_seat = seat(_seat_address);
     address myAddress = this;
     if (existing_seat.event_owner() != myAddress) throw;
+  
     existing_seat.buy_seat.value(msg.value)(msg.sender);
   }
 
