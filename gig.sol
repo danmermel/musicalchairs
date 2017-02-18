@@ -71,6 +71,7 @@ contract gig {
   mapping (address => uint) public seating_plan;
   mapping (uint => seat) public seating_list;
   uint public seat_count;
+  uint public seats_sold;
 
   function gig(bytes32 _venue, bytes32 _event_name, uint _event_time, address _artist) {
     venue = _venue;
@@ -79,6 +80,7 @@ contract gig {
     event_owner = msg.sender;
     artist = _artist;
     seat_count = 0;
+    seats_sold = 0;
   }
 
   function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until) {
@@ -94,10 +96,44 @@ contract gig {
   function buy_seat (address _seat_address) payable {
     if (seating_plan[_seat_address] != 1) throw;
     seat existing_seat = seat(_seat_address);
-    address myAddress = this;
-    if (existing_seat.event_owner() != myAddress) throw;
-  
     existing_seat.buy_seat.value(msg.value)(msg.sender);
+    seats_sold++;
+  }
+
+  function buy_seats (address _seat_address1, address _seat_address2, address _seat_address3, address _seat_address4) payable {
+
+    if (_seat_address1 != address(0)) {
+      if (seating_plan[_seat_address1] != 1) throw;
+      seat existing_seat1 = seat(_seat_address1);
+      var seat_cost1 = existing_seat1.price();
+      existing_seat1.buy_seat.value(seat_cost1)(msg.sender);
+      seats_sold++;
+    }
+
+    if (_seat_address2 != address(0)) {
+      if (seating_plan[_seat_address2] != 1) throw;
+      seat existing_seat2 = seat(_seat_address2);
+      var seat_cost2 = existing_seat2.price();
+      existing_seat2.buy_seat.value(seat_cost2)(msg.sender);
+      seats_sold++;
+    }
+
+    if (_seat_address3 != address(0)) {
+      if (seating_plan[_seat_address3] != 1) throw;
+      seat existing_seat3 = seat(_seat_address3);
+      var seat_cost3 = existing_seat3.price();
+      existing_seat3.buy_seat.value(seat_cost3)(msg.sender);
+      seats_sold++;
+    }
+
+    if (_seat_address4 != address(0)) {
+      if (seating_plan[_seat_address4] != 1) throw;
+      seat existing_seat4 = seat(_seat_address4);
+      var seat_cost4 = existing_seat4.price();
+      existing_seat4.buy_seat.value(seat_cost4)(msg.sender);
+      seats_sold++;
+    }
+
   }
 
   function redemption_challenge (address _seat_to_redeem) constant returns (uint) {
