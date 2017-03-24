@@ -16,10 +16,12 @@ contract seat {
   uint public sellable_until;
   bool public redeemed_by_seat_owner;
   bool public redeemed_by_event_owner;
+  address public gig_address;
 
-  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until) {
+  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until, address _event_owner) {
     status =0;
-    event_owner = msg.sender;
+    event_owner = _event_owner;
+    gig_address = msg.sender;
     venue = _venue;
     event_name = _event_name;
     seat_name = _seat_name;
@@ -30,11 +32,10 @@ contract seat {
     sellable_until = _sellable_until;
     redeemed_by_seat_owner = false;
     redeemed_by_event_owner = false;
-
   }
 
   function buy_seat (address _seat_owner) payable {
-    if (event_owner != msg.sender) throw;
+    if (gig_address != msg.sender) throw;
     if (status !=0) throw;
     if (msg.value != price) throw;
     if (sellable_from > now) throw;
@@ -43,8 +44,8 @@ contract seat {
     seat_owner = _seat_owner;
   }
 
-  function redeem_ticket (address _redeemer) {
-    if (event_owner != msg.sender) throw;    
+  function redeem_seat (address _redeemer) {
+    if (gig_address != msg.sender) throw;    
     if (status != 1) throw;
     if (_redeemer == event_owner) {
       redeemed_by_event_owner = true;
@@ -88,8 +89,8 @@ contract gig {
   uint public seats_sold;
 
   event Log_seat_created (address seat_address);
-  event Log_seat_bought (address seat_bought);
-  event Log_ticket_redeemed (address ticket_redeemed, address redeemer);
+  event Log_seat_bought (address seat_address);
+  event Log_seat_redeemed (address seat_address, address redeemer);
 
 
   function gig(bytes32 _venue, bytes32 _event_name, uint _event_time, address _artist) {
@@ -104,7 +105,7 @@ contract gig {
 
   function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until) {
     if (event_owner != msg.sender) throw;
-    var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until);
+    var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until, event_owner);
     // list of created seats in an array indexed by integer
     seating_list[seat_count] = s;
     // list of 1s indexed by seat addresses
@@ -169,12 +170,13 @@ contract gig {
     return 1;
   }
 
-  function redeem_ticket(address _seat_to_redeem) {
+  function redeem_seat(address _seat_to_redeem) {
     seat existing_seat = seat (_seat_to_redeem);
     if (existing_seat.seat_owner() != msg.sender && event_owner != msg.sender) throw;
-    existing_seat.redeem_ticket(msg.sender);
-    Log_ticket_redeemed(existing_seat, msg.sender);
-
+    existing_seat.redeem_seat(msg.sender);
+    if (existing_seat.redeemed_by_seat_owner() && existing_seat.redeemed_by_event_owner()) {
+      Log_seat_redeemed(existing_seat, msg.sender);
+    }
   }
 
 }
