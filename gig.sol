@@ -17,8 +17,9 @@ contract seat {
   bool public redeemed_by_seat_owner;
   bool public redeemed_by_event_owner;
   address public gig_address;
+  bytes32 secret;
 
-  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until, address _event_owner) {
+  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until, address _event_owner, bytes32 _secret) {
     status =0;
     event_owner = _event_owner;
     gig_address = msg.sender;
@@ -32,6 +33,7 @@ contract seat {
     sellable_until = _sellable_until;
     redeemed_by_seat_owner = false;
     redeemed_by_event_owner = false;
+    secret = _secret;
   }
 
   function buy_seat (address _seat_owner) payable {
@@ -42,6 +44,20 @@ contract seat {
     if (sellable_until < now) throw;
     status = 1;
     seat_owner = _seat_owner;
+  }
+
+  function generate_hash () constant returns (bytes32) {
+    if (gig_address != msg.sender) throw;
+    return sha3(now, this, secret);
+  }
+
+  function check_hash (bytes32 _hash) constant returns (bool) {
+    if (gig_address != msg.sender) throw;
+    var t = now;
+    for (var i = t; i>t-60; i--) {
+      if (sha3(i,this,secret) == _hash) return true;
+    }
+    return false;
   }
 
   function redeem_seat (address _redeemer) {
@@ -103,9 +119,9 @@ contract gig {
     seats_sold = 0;
   }
 
-  function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until) {
+  function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until, bytes32 _secret) {
     if (event_owner != msg.sender) throw;
-    var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until, event_owner);
+    var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until, event_owner, _secret);
     // list of created seats in an array indexed by integer
     seating_list[seat_count] = s;
     // list of 1s indexed by seat addresses
@@ -160,6 +176,20 @@ contract gig {
       Log_seat_bought(existing_seat4);
     }
 
+  }
+
+
+  function generate_hash (address _seat_to_hash) constant returns (bytes32) {
+    seat existing_seat = seat (_seat_to_hash);
+    if (existing_seat.seat_owner() != msg.sender) throw;
+    return existing_seat.generate_hash();
+  }
+
+  function check_hash ( address _seat_to_check, bytes32 _hash) constant returns (bool) {
+    seat existing_seat = seat (_seat_to_check);
+    if (existing_seat.seat_owner() != msg.sender) throw;
+    return existing_seat.check_hash(_hash);
+  
   }
 
   function redemption_challenge (address _seat_to_redeem) constant returns (uint) {
