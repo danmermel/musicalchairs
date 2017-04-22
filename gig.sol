@@ -141,13 +141,16 @@ contract gig {
     Log_seat_bought(existing_seat);
   }
 
-  function buy_seats (address _seat_address1, address _seat_address2, address _seat_address3, address _seat_address4) payable {
+  function buy_seats (address _seat_address1, address _seat_owner1, address _seat_address2, address _seat_owner2, address _seat_address3, address _seat_owner3) payable {
 
     if (_seat_address1 != address(0)) {
       if (seating_plan[_seat_address1] != 1) throw;
       seat existing_seat1 = seat(_seat_address1);
       var seat_cost1 = existing_seat1.price();
-      existing_seat1.buy_seat.value(seat_cost1)(msg.sender);
+      if (_seat_owner1 == 0) {
+        _seat_owner1 = msg.sender;
+      }
+      existing_seat1.buy_seat.value(seat_cost1)(_seat_owner1);
       seats_sold++;
       Log_seat_bought(existing_seat1);
     }
@@ -156,7 +159,10 @@ contract gig {
       if (seating_plan[_seat_address2] != 1) throw;
       seat existing_seat2 = seat(_seat_address2);
       var seat_cost2 = existing_seat2.price();
-      existing_seat2.buy_seat.value(seat_cost2)(msg.sender);
+      if (_seat_owner2 == 0) {
+        _seat_owner2 = msg.sender;
+      }
+      existing_seat2.buy_seat.value(seat_cost2)(_seat_owner2);
       seats_sold++;
       Log_seat_bought(existing_seat2);
     }
@@ -165,18 +171,12 @@ contract gig {
       if (seating_plan[_seat_address3] != 1) throw;
       seat existing_seat3 = seat(_seat_address3);
       var seat_cost3 = existing_seat3.price();
-      existing_seat3.buy_seat.value(seat_cost3)(msg.sender);
+      if (_seat_owner3 == 0) {
+        _seat_owner3 = msg.sender;
+      }
+      existing_seat3.buy_seat.value(seat_cost3)(_seat_owner3);
       seats_sold++;
       Log_seat_bought(existing_seat3);
-    }
-
-    if (_seat_address4 != address(0)) {
-      if (seating_plan[_seat_address4] != 1) throw;
-      seat existing_seat4 = seat(_seat_address4);
-      var seat_cost4 = existing_seat4.price();
-      existing_seat4.buy_seat.value(seat_cost4)(msg.sender);
-      seats_sold++;
-      Log_seat_bought(existing_seat4);
     }
 
   }
