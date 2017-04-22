@@ -130,10 +130,13 @@ contract gig {
     Log_seat_created(s);
   }
 
-  function buy_seat (address _seat_address) payable {
+  function buy_seat (address _seat_address, address _seat_owner) payable {
     if (seating_plan[_seat_address] != 1) throw;
     seat existing_seat = seat(_seat_address);
-    existing_seat.buy_seat.value(msg.value)(msg.sender);
+    if (_seat_owner == 0) {
+      _seat_owner = msg.sender;
+    }
+    existing_seat.buy_seat.value(msg.value)(_seat_owner);
     seats_sold++;
     Log_seat_bought(existing_seat);
   }
