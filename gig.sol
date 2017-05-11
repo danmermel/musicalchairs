@@ -14,12 +14,9 @@ contract seat {
   address public seat_owner;
   uint public sellable_from;
   uint public sellable_until;
-  bool public redeemed_by_seat_owner;
-  bool public redeemed_by_event_owner;
   address public gig_address;
-  bytes32 secret;
 
-  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until, address _event_owner, bytes32 _secret) {
+  function seat(bytes32 _venue, bytes32 _event_name, bytes32 _seat_name, uint _price, uint _event_time, address _artist, uint _sellable_from, uint _sellable_until, address _event_owner) {
     status =0;
     event_owner = _event_owner;
     gig_address = msg.sender;
@@ -31,9 +28,6 @@ contract seat {
     artist = _artist;
     sellable_from = _sellable_from;
     sellable_until = _sellable_until;
-    redeemed_by_seat_owner = false;
-    redeemed_by_event_owner = false;
-    secret = _secret;
   }
 
   function buy_seat (address _seat_owner) payable {
@@ -46,34 +40,17 @@ contract seat {
     seat_owner = _seat_owner;
   }
 
-  function generate_hash () constant returns (bytes32) {
-    if (gig_address != msg.sender) throw;
-    return sha3(now, this, secret);
-  }
-
-  function check_hash (bytes32 _hash) constant returns (bool) {
-    if (gig_address != msg.sender) throw;
-    var t = now;
-    for (var i = t; i>t-60; i--) {
-      if (sha3(i,this,secret) == _hash) return true;
-    }
-    return false;
-  }
-
-  function redeem_seat (address _redeemer) {
+  function redeem_seat (bytes32 _msg, uint8 _v, bytes32 _r, bytes32 _s) constant returns (bool) {
     if (gig_address != msg.sender) throw;    
     if (status != 1) throw;
-    if (_redeemer == event_owner) {
-      redeemed_by_event_owner = true;
-    }
-    if (_redeemer == seat_owner) {
-      redeemed_by_seat_owner = true;
-    }
-
+    bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+    bytes32 prefixedHash = sha3(prefix, _msg);
+    if (ecrecover(prefixedHash, _v, _r, _s) == seat_owner) {
     // kill the contract and send its value to the artist
-    if (redeemed_by_seat_owner && redeemed_by_event_owner) {
       suicide(artist);
+      return true;
     }
+    return false;
   }
 
 
@@ -119,9 +96,9 @@ contract gig {
     seats_sold = 0;
   }
 
-  function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until, bytes32 _secret) {
+  function create_seat(bytes32 _seat_name, uint _price, uint _sellable_from, uint _sellable_until) {
     if (event_owner != msg.sender) throw;
-    var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until, event_owner, _secret);
+    var s = new seat(venue, event_name, _seat_name, _price, event_time, artist, _sellable_from, _sellable_until, event_owner);
     // list of created seats in an array indexed by integer
     seating_list[seat_count] = s;
     // list of 1s indexed by seat addresses
@@ -182,32 +159,10 @@ contract gig {
   }
 
 
-  function generate_hash (address _seat_to_hash) constant returns (bytes32) {
-    seat existing_seat = seat (_seat_to_hash);
-    if (existing_seat.seat_owner() != msg.sender) throw;
-    return existing_seat.generate_hash();
-  }
-
-  function check_hash ( address _seat_to_check, bytes32 _hash) constant returns (bool) {
-    seat existing_seat = seat (_seat_to_check);
-    if (existing_seat.seat_owner() != msg.sender) throw;
-    return existing_seat.check_hash(_hash);
-  
-  }
-
-  function redemption_challenge (address _seat_to_redeem) constant returns (uint) {
+  function redeem_seat(address _seat_to_redeem, bytes32 _msg, uint8 _v, bytes32 _r, bytes32 _s ) {
     seat existing_seat = seat (_seat_to_redeem);
-    if (existing_seat.seat_owner() != msg.sender) {
-      return 0;
-    }
-    return 1;
-  }
-
-  function redeem_seat(address _seat_to_redeem) {
-    seat existing_seat = seat (_seat_to_redeem);
-    if (existing_seat.seat_owner() != msg.sender && event_owner != msg.sender) throw;
-    existing_seat.redeem_seat(msg.sender);
-    if (existing_seat.redeemed_by_seat_owner() && existing_seat.redeemed_by_event_owner()) {
+    if (existing_seat.event_owner() != msg.sender) throw;
+    if (existing_seat.redeem_seat(_msg, _v, _r, _s) ) {
       Log_seat_redeemed(existing_seat, msg.sender);
     }
   }
