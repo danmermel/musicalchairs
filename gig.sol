@@ -40,32 +40,15 @@ contract seat {
     seat_owner = _seat_owner;
   }
 
-  function redeem_seat (bytes32 _msg, uint8 _v, bytes32 _r, bytes32 _s) constant returns (bool) {
-    // if (gig_address != msg.sender) throw;    
-    if (status != 1) throw;
-    bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-    bytes32 prefixedHash = sha3(prefix, _msg);
-    if (ecrecover(prefixedHash, _v, _r, _s) == seat_owner) {
-    // kill the contract and send its value to the artist
-      suicide(artist);
-      return true;
-    }
-    return false;
-  }
-
-  function kill() {
-    suicide(artist);
-  }
-
-  function mark_unlocked () {
-    if (event_owner != msg.sender) throw;
+  function pay_artist () {
+    if (gig_address != msg.sender) throw;
     if (event_time > now) throw;
     // kill the contract and send its value to the artist
     suicide(artist);
   }
 
-  function mark_cancelled() {
-    if (event_owner != msg.sender) throw;
+  function refund() {
+    if (gig_address != msg.sender) throw;
     if (status != 1) throw;
     suicide(seat_owner);
   }
@@ -165,25 +148,28 @@ contract gig {
   function redeem_seat(address _seat_to_redeem, bytes32 _msg, uint8 _v, bytes32 _r, bytes32 _s ) constant returns (bool) {
    
     seat existing_seat = seat (_seat_to_redeem);
-
-    // if (gig_address != msg.sender) throw;
-    //if (status != 1) throw;
+    if (existing_seat.status() != 1) throw;
     bytes memory prefix = "\x19Ethereum Signed Message:\n32";
     bytes32 prefixedHash = sha3(prefix, _msg);
     if (ecrecover(prefixedHash, _v, _r, _s) == existing_seat.seat_owner()) {
-    // kill the contract and send its value to the artist
-      existing_seat.kill();
-      Log_seat_redeemed(existing_seat, msg.sender);
-    //suicide(artist);
       return true;
     }
     return false;
 
 
-//    if (existing_seat.event_owner() != msg.sender) throw;
-//    if (existing_seat.redeem_seat(_msg, _v, _r, _s) ) {
-//      Log_seat_redeemed(existing_seat, msg.sender);
-//   }
   }
 
+  function pay_artist(address _seat_id) {
+    if (event_owner != msg.sender) throw;
+    seat existing_seat = seat (_seat_id);
+    if (existing_seat.status() != 1) throw;
+    existing_seat.pay_artist();
+  }
+
+  function refund(address _seat_id) {
+    if (event_owner != msg.sender) throw;
+    seat existing_seat = seat (_seat_id);
+    if (existing_seat.status() != 1) throw;
+    existing_seat.refund();
+  }
 }
